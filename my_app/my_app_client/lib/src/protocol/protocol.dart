@@ -12,11 +12,14 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 
 import 'package:serverpod_client/serverpod_client.dart' as _i1;
-import 'greetings/greeting.dart' as _i2;
+import 'articles/article.dart' as _i2;
+import 'greetings/greeting.dart' as _i3;
+import 'package:my_app_client/src/protocol/articles/article.dart' as _i4;
 import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
-    as _i3;
+    as _i5;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
-    as _i4;
+    as _i6;
+export 'articles/article.dart';
 export 'greetings/greeting.dart';
 export 'client.dart';
 
@@ -54,24 +57,35 @@ class Protocol extends _i1.SerializationManager {
       }
     }
 
-    if (t == _i2.Greeting) {
-      return _i2.Greeting.fromJson(data) as T;
+    if (t == _i2.Article) {
+      return _i2.Article.fromJson(data) as T;
     }
-    if (t == _i1.getType<_i2.Greeting?>()) {
-      return (data != null ? _i2.Greeting.fromJson(data) : null) as T;
+    if (t == _i3.Greeting) {
+      return _i3.Greeting.fromJson(data) as T;
+    }
+    if (t == _i1.getType<_i2.Article?>()) {
+      return (data != null ? _i2.Article.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i3.Greeting?>()) {
+      return (data != null ? _i3.Greeting.fromJson(data) : null) as T;
+    }
+    if (t == List<_i4.Article>) {
+      return (data as List).map((e) => deserialize<_i4.Article>(e)).toList()
+          as T;
     }
     try {
-      return _i3.Protocol().deserialize<T>(data, t);
+      return _i5.Protocol().deserialize<T>(data, t);
     } on _i1.DeserializationTypeNotFoundException catch (_) {}
     try {
-      return _i4.Protocol().deserialize<T>(data, t);
+      return _i6.Protocol().deserialize<T>(data, t);
     } on _i1.DeserializationTypeNotFoundException catch (_) {}
     return super.deserialize<T>(data, t);
   }
 
   static String? getClassNameForType(Type type) {
     return switch (type) {
-      _i2.Greeting => 'Greeting',
+      _i2.Article => 'Article',
+      _i3.Greeting => 'Greeting',
       _ => null,
     };
   }
@@ -86,14 +100,16 @@ class Protocol extends _i1.SerializationManager {
     }
 
     switch (data) {
-      case _i2.Greeting():
+      case _i2.Article():
+        return 'Article';
+      case _i3.Greeting():
         return 'Greeting';
     }
-    className = _i3.Protocol().getClassNameForObject(data);
+    className = _i5.Protocol().getClassNameForObject(data);
     if (className != null) {
       return 'serverpod_auth_idp.$className';
     }
-    className = _i4.Protocol().getClassNameForObject(data);
+    className = _i6.Protocol().getClassNameForObject(data);
     if (className != null) {
       return 'serverpod_auth_core.$className';
     }
@@ -106,16 +122,19 @@ class Protocol extends _i1.SerializationManager {
     if (dataClassName is! String) {
       return super.deserializeByClassName(data);
     }
+    if (dataClassName == 'Article') {
+      return deserialize<_i2.Article>(data['data']);
+    }
     if (dataClassName == 'Greeting') {
-      return deserialize<_i2.Greeting>(data['data']);
+      return deserialize<_i3.Greeting>(data['data']);
     }
     if (dataClassName.startsWith('serverpod_auth_idp.')) {
       data['className'] = dataClassName.substring(19);
-      return _i3.Protocol().deserializeByClassName(data);
+      return _i5.Protocol().deserializeByClassName(data);
     }
     if (dataClassName.startsWith('serverpod_auth_core.')) {
       data['className'] = dataClassName.substring(20);
-      return _i4.Protocol().deserializeByClassName(data);
+      return _i6.Protocol().deserializeByClassName(data);
     }
     return super.deserializeByClassName(data);
   }
@@ -130,10 +149,10 @@ class Protocol extends _i1.SerializationManager {
       return null;
     }
     try {
-      return _i3.Protocol().mapRecordToJson(record);
+      return _i5.Protocol().mapRecordToJson(record);
     } catch (_) {}
     try {
-      return _i4.Protocol().mapRecordToJson(record);
+      return _i6.Protocol().mapRecordToJson(record);
     } catch (_) {}
     throw Exception('Unsupported record type ${record.runtimeType}');
   }

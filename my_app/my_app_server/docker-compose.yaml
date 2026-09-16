@@ -19,6 +19,13 @@ services:
     environment:
       - REDIS_REPLICATION_MODE=master
 
+  # Web-based Database Management Interface (Adminer)
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8085:8080"
+
   # Test services
   postgres_test:
     image: pgvector/pgvector:pg16

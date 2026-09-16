@@ -1,3 +1,6 @@
+article:
+  - addArticle:
+  - getArticles:
 emailIdp:
   - login:
   - startRegistration:

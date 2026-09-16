@@ -1,0 +1,8 @@
+### An article model stored in the database.
+class: Article
+table: article
+
+fields:
+  title: String
+  content: String
+  publishedAt: DateTime
