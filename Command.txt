@@ -1,0 +1,202 @@
+================================================================================
+                      SERVER & APP DEVELOPMENT CHEAT SHEET
+================================================================================
+
+1. VPS CONNECTION & INITIAL SETUP (Ubuntu 24.04)
+--------------------------------------------------------------------------------
+# SSH Connection:
+ssh root@160.25.226.218
+# Password: aS428GgGUFyBmPd93rRF
+
+# 1. First time system update:
+sudo apt update && sudo apt upgrade -y
+
+# 2. Install Midnight Commander file manager:
+sudo apt update
+sudo apt install mc -y
+mc # Launch file explorer
+
+
+2. QUICK HTML & SIMPLE WEBSERVER TESTING
+--------------------------------------------------------------------------------
+# Check Python version:
+python3 --version
+
+# Navigate to web root directory:
+cd /var/www/html
+
+# Create index.html file:
+sudo nano /var/www/html/index.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Website</title>
+</head>
+<body>
+    <h1>Hello World! My Ubuntu 24.04 Server is Live.</h1>
+</body>
+</html>
+
+# Save Nano File:
+# Press Ctrl+O, then Enter to save, and Ctrl+X to exit
+
+# If folder/file missing:
+# - Create folder:
+sudo mkdir -p /var/www/html/
+
+# - Set folder permissions:
+sudo chown -R $USER:$USER /var/www/html/
+
+# - Test inline index.html creation:
+echo "<h1>Hello World</h1>" > /var/www/html/index.html
+
+# Run Python HTTP server on port 80:
+sudo python3 -m http.server 80
+
+# Go to website in browser:
+# http://160.25.226.218
+
+# If showing root directory:
+cd /var/www/html/
+sudo python3 -m http.server 80
+
+# Permanent Background Daemon Run (nohup):
+cd /var/www/html/ && nohup sudo python3 -m http.server 80 > /dev/null 2>&1 &
+
+# Verify running server process:
+ps aux | grep http.server
+
+# Stop / Shut down web server completely:
+sudo pkill -f http.server
+
+
+3. NGINX CONFIGURATION & REVERSE PROXY
+--------------------------------------------------------------------------------
+# Locate and edit active Nginx default config:
+sudo nano /etc/nginx/sites-available/default
+
+# Restart & check Nginx service status:
+sudo systemctl restart nginx
+sudo systemctl status nginx
+
+# Nginx Reverse Proxy snippet for Serverpod (Port 80 -> Port 8080):
+# server {
+#     listen 80;
+#     server_name 160.25.226.218;
+#     location / {
+#         proxy_pass http://localhost:8080;
+#         proxy_set_header Host $host;
+#         proxy_set_header X-Real-IP $remote_addr;
+#     }
+# }
+
+
+4. LOCAL PREREQUISITES (Windows Setup)
+--------------------------------------------------------------------------------
+# Install Docker Desktop:
+winget install Docker.DockerDesktop
+docker --version
+
+# Install Serverpod CLI globally:
+dart pub global activate serverpod_cli
+
+
+5. SERVERPOD BACKEND SERVER COMMANDS
+--------------------------------------------------------------------------------
+# A. Create New Serverpod Project (Includes Server, Client & Flutter Web/Mobile App):
+serverpod create <project_name>
+
+# Example:
+serverpod create my_app
+# (This automatically creates: my_app_server, my_app_client, and my_app_flutter)
+
+# B. Local Development:
+cd my_app/my_app_server
+
+# 1. Start Docker Containers (PostgreSQL & Redis):
+docker compose up -d
+
+# 2. Generate Serverpod Code (Run whenever models/endpoints change):
+serverpod generate
+
+# 3. Create Database Migration (Run whenever models change):
+serverpod create-migration
+
+# 4. Start Serverpod Server with Migrations:
+dart bin/main.dart --apply-migrations
+
+# C. VPS Production Deployment (Ubuntu):
+# Install Dart SDK on Ubuntu VPS:
+sudo apt update
+sudo apt install apt-transport-https
+wget -qO- https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/dart.gpg
+echo 'deb [signed-by=/usr/share/keyrings/dart.gpg] https://storage.googleapis.com/download.dartlang.org/linux/debian stable main' | sudo tee /etc/apt/sources.list.d/dart_stable.list
+sudo apt update
+sudo apt install dart -y
+
+# Run Serverpod in Production Mode on VPS:
+cd /var/www/my_app/my_app_server
+dart bin/main.dart --mode production --apply-migrations
+
+# Run Serverpod as Background Daemon on VPS (nohup):
+cd /var/www/my_app/my_app_server && nohup dart bin/main.dart --mode production --apply-migrations > /dev/null 2>&1 &
+
+# Check running Serverpod process:
+ps aux | grep main.dart
+
+# Stop running Serverpod server on VPS:
+pkill -f "dart bin/main.dart"
+
+
+6. FLUTTER WEB APP COMMANDS
+--------------------------------------------------------------------------------
+# A. Enable Web Support & Run Locally:
+cd my_app/my_app_flutter
+flutter config --enable-web
+flutter run -d chrome
+
+# B. Build Web App & Bundle with Serverpod Server:
+# Windows (Copy to Serverpod Web directory):
+cd my_app/my_app_server
+dart run serverpod:flutter_build
+
+# Linux / VPS Web Build for Serverpod:
+cd my_app/my_app_flutter
+flutter build web --base-href /app/ --wasm --output ../my_app_server/web/app
+
+# C. Standalone Web Build (for Nginx/Apache hosting):
+cd my_app/my_app_flutter
+flutter build web --release
+
+
+7. FLUTTER MOBILE APP COMMANDS (Android & iOS)
+--------------------------------------------------------------------------------
+cd my_app/my_app_flutter
+
+# A. Devices & Emulators:
+flutter devices
+flutter emulators
+flutter emulators --launch <emulator_id>
+
+# B. Run Mobile App:
+flutter run -d android
+flutter run -d ios
+
+# C. Build Android Apps:
+# Debug APK:
+flutter build apk --debug
+
+# Release APK (for direct installation):
+flutter build apk --release
+
+# Split APKs per Architecture (Smaller file sizes):
+flutter build apk --split-per-abi
+
+# App Bundle (AAB for Google Play Store upload):
+flutter build appbundle --release
+
+# D. Build iOS App (macOS only):
+flutter build ios --release
+flutter build ipa
