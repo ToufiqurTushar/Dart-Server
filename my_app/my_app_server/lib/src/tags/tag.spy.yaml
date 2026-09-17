@@ -1,0 +1,8 @@
+class: Tag
+table: tag
+
+fields:
+  name: String
+  slug: String
+  articleTags: List<ArticleTag>?, relation(name=tag_articles)
+

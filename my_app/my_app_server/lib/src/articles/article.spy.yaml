@@ -1,8 +1,23 @@
-### An article model stored in the database.
 class: Article
 table: article
 
 fields:
   title: String
+  slug: String
+  summary: String?
   content: String
-  publishedAt: DateTime
+  coverImageUrl: String?
+  authorName: String
+  authorAvatarUrl: String?
+  status: String
+  viewsCount: int
+  likesCount: int
+  readingTimeMinutes: int
+  isFeatured: bool
+  publishedAt: DateTime?
+  createdAt: DateTime
+  updatedAt: DateTime?
+  categoryId: int?
+  category: Category?, relation(field=categoryId)
+  articleTags: List<ArticleTag>?, relation(name=article_tags)
+  comments: List<Comment>?, relation(name=article_comments)

@@ -1,0 +1,71 @@
+name: Apex Blog CI/CD Deployment
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 2. Setup Dart SDK
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: 3. Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: 4. Install Serverpod CLI
+        run: dart pub global activate serverpod_cli
+
+      - name: 5. Build Flutter Web Release App
+        run: |
+          cd my_app/my_app_flutter
+          flutter pub get
+          flutter build web --release
+          mkdir -p ../my_app_server/web/app
+          cp -r build/web/* ../my_app_server/web/app/
+
+      - name: 6. Deploy & Restart Serverpod on VPS via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            # 1. Navigate to target folder or clone if missing
+            if [ ! -d "/var/www/Dart-Server" ]; then
+              mkdir -p /var/www
+              cd /var/www
+              git clone https://github.com/ToufiqurTushar/Dart-Server.git
+            fi
+
+            cd /var/www/Dart-Server
+            git fetch --all
+            git reset --hard origin/main
+
+            # 2. Start PostgreSQL & Redis via Docker
+            cd my_app/my_app_server
+            docker compose up -d
+
+            # 3. Apply DB migrations & start Serverpod backend in production mode
+            dart pub get
+            pkill -f "dart bin/main.dart" || true
+            nohup dart bin/main.dart --mode production --apply-migrations > /dev/null 2>&1 &
+
+            # 4. Install & Configure Nginx if missing
+            if ! command -v nginx > /dev/null 2>&1; then
+              sudo apt update && sudo apt install -y nginx
+              sudo systemctl enable nginx
+            fi
+            sudo systemctl restart nginx

@@ -1,0 +1,11 @@
+class: DashboardStats
+
+fields:
+  totalArticles: int
+  publishedArticles: int
+  draftArticles: int
+  totalViews: int
+  totalComments: int
+  pendingComments: int
+  totalCategories: int
+  totalTags: int

@@ -1,0 +1,11 @@
+class: Category
+table: category
+
+fields:
+  name: String
+  slug: String
+  description: String?
+  colorHex: String?
+  iconName: String?
+  articles: List<Article>?, relation
+

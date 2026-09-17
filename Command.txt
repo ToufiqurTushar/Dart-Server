@@ -158,17 +158,17 @@ flutter config --enable-web
 flutter run -d chrome
 
 # B. Build Web App & Bundle with Serverpod Server:
-# Windows (Copy to Serverpod Web directory):
-cd my_app/my_app_server
-dart run serverpod:flutter_build
+# Windows (Build & Copy to Serverpod Web directory):
+cd my_app/my_app_flutter
+if (!(Test-Path "..\my_app_server\web\app")) { New-Item -ItemType Directory -Force -Path "..\my_app_server\web\app" }
+flutter build web --release
+Copy-Item -Path "build\web\*" -Destination "..\my_app_server\web\app" -Recurse -Force
 
 # Linux / VPS Web Build for Serverpod:
 cd my_app/my_app_flutter
-flutter build web --base-href /app/ --wasm --output ../my_app_server/web/app
-
-# C. Standalone Web Build (for Nginx/Apache hosting):
-cd my_app/my_app_flutter
-flutter build web --release
+mkdir -p ../my_app_server/web/app
+flutter build web --release --base-href /app/ --wasm
+cp -r build/web/* ../my_app_server/web/app/
 
 
 7. FLUTTER MOBILE APP COMMANDS (Android & iOS)

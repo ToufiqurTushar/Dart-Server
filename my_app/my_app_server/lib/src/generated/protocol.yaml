@@ -1,6 +1,16 @@
 article:
-  - addArticle:
   - getArticles:
+  - getArticleById:
+  - incrementLikes:
+  - addArticle:
+  - updateArticle:
+  - deleteArticle:
+  - createCategory:
+  - getCategories:
+  - deleteCategory:
+  - createTag:
+  - getTags:
+  - deleteTag:
 emailIdp:
   - login:
   - startRegistration:
@@ -12,5 +22,13 @@ emailIdp:
   - hasAccount:
 jwtRefresh:
   - refreshAccessToken:
+comment:
+  - addComment:
+  - getCommentsForArticle:
+  - getAllCommentsForAdmin:
+  - toggleApproval:
+  - deleteComment:
+dashboard:
+  - getStats:
 greeting:
   - hello:

@@ -1,0 +1,11 @@
+name: crud_screen
+description: A Mason brick for generating Serverpod Flutter CRUD screens.
+version: 0.1.0+1
+environment:
+  mason: ">=0.1.0-dev <0.2.0"
+vars:
+  name:
+    type: string
+    description: The name of the entity model (e.g. Category, Tag, Article)
+    default: Category
+    prompt: What is the entity name?

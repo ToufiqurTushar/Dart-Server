@@ -1,0 +1,18 @@
+[Unit]
+Description=Apex Blog Serverpod Backend Service
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/Dart-Server/my_app/my_app_server
+ExecStart=/usr/bin/dart bin/main.dart --mode production --apply-migrations
+Restart=always
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=apex_blog_server
+
+[Install]
+WantedBy=multi-user.target

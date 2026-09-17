@@ -14,12 +14,17 @@
 import 'package:serverpod_client/serverpod_client.dart' as _i1;
 import 'dart:async' as _i2;
 import 'package:my_app_client/src/protocol/articles/article.dart' as _i3;
+import 'package:my_app_client/src/protocol/categories/category.dart' as _i4;
+import 'package:my_app_client/src/protocol/tags/tag.dart' as _i5;
 import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
-    as _i4;
+    as _i6;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
-    as _i5;
-import 'package:my_app_client/src/protocol/greetings/greeting.dart' as _i6;
-import 'protocol.dart' as _i7;
+    as _i7;
+import 'package:my_app_client/src/protocol/comments/comment.dart' as _i8;
+import 'package:my_app_client/src/protocol/dashboard/dashboard_stats.dart'
+    as _i9;
+import 'package:my_app_client/src/protocol/greetings/greeting.dart' as _i10;
+import 'protocol.dart' as _i11;
 
 /// {@category Endpoint}
 class EndpointArticle extends _i1.EndpointRef {
@@ -28,7 +33,38 @@ class EndpointArticle extends _i1.EndpointRef {
   @override
   String get name => 'article';
 
-  /// Create a new article in the database
+  /// Get articles with optional filtering by status, search, categoryId
+  _i2.Future<List<_i3.Article>> getArticles({
+    String? statusFilter,
+    String? searchQuery,
+    int? categoryId,
+  }) => caller.callServerEndpoint<List<_i3.Article>>(
+    'article',
+    'getArticles',
+    {
+      'statusFilter': statusFilter,
+      'searchQuery': searchQuery,
+      'categoryId': categoryId,
+    },
+  );
+
+  /// Get single article by ID and increment its view counter
+  _i2.Future<_i3.Article?> getArticleById(int id) =>
+      caller.callServerEndpoint<_i3.Article?>(
+        'article',
+        'getArticleById',
+        {'id': id},
+      );
+
+  /// Increment article like count
+  _i2.Future<int> incrementLikes(int articleId) =>
+      caller.callServerEndpoint<int>(
+        'article',
+        'incrementLikes',
+        {'articleId': articleId},
+      );
+
+  /// Create a new article
   _i2.Future<_i3.Article> addArticle(_i3.Article article) =>
       caller.callServerEndpoint<_i3.Article>(
         'article',
@@ -36,20 +72,69 @@ class EndpointArticle extends _i1.EndpointRef {
         {'article': article},
       );
 
-  /// Get all articles from the database
-  _i2.Future<List<_i3.Article>> getArticles() =>
-      caller.callServerEndpoint<List<_i3.Article>>(
+  /// Update an existing article
+  _i2.Future<_i3.Article> updateArticle(_i3.Article article) =>
+      caller.callServerEndpoint<_i3.Article>(
         'article',
-        'getArticles',
+        'updateArticle',
+        {'article': article},
+      );
+
+  /// Delete an article by ID
+  _i2.Future<bool> deleteArticle(int id) => caller.callServerEndpoint<bool>(
+    'article',
+    'deleteArticle',
+    {'id': id},
+  );
+
+  /// Categories CRUD
+  _i2.Future<_i4.Category> createCategory(_i4.Category category) =>
+      caller.callServerEndpoint<_i4.Category>(
+        'article',
+        'createCategory',
+        {'category': category},
+      );
+
+  _i2.Future<List<_i4.Category>> getCategories() =>
+      caller.callServerEndpoint<List<_i4.Category>>(
+        'article',
+        'getCategories',
         {},
       );
+
+  _i2.Future<bool> deleteCategory(int id) => caller.callServerEndpoint<bool>(
+    'article',
+    'deleteCategory',
+    {'id': id},
+  );
+
+  /// Tags CRUD
+  _i2.Future<_i5.Tag> createTag(_i5.Tag tag) =>
+      caller.callServerEndpoint<_i5.Tag>(
+        'article',
+        'createTag',
+        {'tag': tag},
+      );
+
+  _i2.Future<List<_i5.Tag>> getTags() =>
+      caller.callServerEndpoint<List<_i5.Tag>>(
+        'article',
+        'getTags',
+        {},
+      );
+
+  _i2.Future<bool> deleteTag(int id) => caller.callServerEndpoint<bool>(
+    'article',
+    'deleteTag',
+    {'id': id},
+  );
 }
 
 /// By extending [EmailIdpBaseEndpoint], the email identity provider endpoints
 /// are made available on the server and enable the corresponding sign-in widget
 /// on the client.
 /// {@category Endpoint}
-class EndpointEmailIdp extends _i4.EndpointEmailIdpBase {
+class EndpointEmailIdp extends _i6.EndpointEmailIdpBase {
   EndpointEmailIdp(_i1.EndpointCaller caller) : super(caller);
 
   @override
@@ -65,10 +150,10 @@ class EndpointEmailIdp extends _i4.EndpointEmailIdpBase {
   ///
   /// Throws an [AuthUserBlockedException] if the auth user is blocked.
   @override
-  _i2.Future<_i5.AuthSuccess> login({
+  _i2.Future<_i7.AuthSuccess> login({
     required String email,
     required String password,
-  }) => caller.callServerEndpoint<_i5.AuthSuccess>(
+  }) => caller.callServerEndpoint<_i7.AuthSuccess>(
     'emailIdp',
     'login',
     {
@@ -133,10 +218,10 @@ class EndpointEmailIdp extends _i4.EndpointEmailIdpBase {
   ///
   /// Returns a session for the newly created user.
   @override
-  _i2.Future<_i5.AuthSuccess> finishRegistration({
+  _i2.Future<_i7.AuthSuccess> finishRegistration({
     required String registrationToken,
     required String password,
-  }) => caller.callServerEndpoint<_i5.AuthSuccess>(
+  }) => caller.callServerEndpoint<_i7.AuthSuccess>(
     'emailIdp',
     'finishRegistration',
     {
@@ -231,7 +316,7 @@ class EndpointEmailIdp extends _i4.EndpointEmailIdpBase {
 /// By extending [RefreshJwtTokensEndpoint], the JWT token refresh endpoint
 /// is made available on the server and enables automatic token refresh on the client.
 /// {@category Endpoint}
-class EndpointJwtRefresh extends _i5.EndpointRefreshJwtTokens {
+class EndpointJwtRefresh extends _i7.EndpointRefreshJwtTokens {
   EndpointJwtRefresh(_i1.EndpointCaller caller) : super(caller);
 
   @override
@@ -256,14 +341,78 @@ class EndpointJwtRefresh extends _i5.EndpointRefreshJwtTokens {
   /// This endpoint is unauthenticated, meaning the client won't include any
   /// authentication information with the call.
   @override
-  _i2.Future<_i5.AuthSuccess> refreshAccessToken({
+  _i2.Future<_i7.AuthSuccess> refreshAccessToken({
     required String refreshToken,
-  }) => caller.callServerEndpoint<_i5.AuthSuccess>(
+  }) => caller.callServerEndpoint<_i7.AuthSuccess>(
     'jwtRefresh',
     'refreshAccessToken',
     {'refreshToken': refreshToken},
     authenticated: false,
   );
+}
+
+/// {@category Endpoint}
+class EndpointComment extends _i1.EndpointRef {
+  EndpointComment(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'comment';
+
+  /// Add a new comment to an article
+  _i2.Future<_i8.Comment> addComment(_i8.Comment comment) =>
+      caller.callServerEndpoint<_i8.Comment>(
+        'comment',
+        'addComment',
+        {'comment': comment},
+      );
+
+  /// Get approved comments for an article
+  _i2.Future<List<_i8.Comment>> getCommentsForArticle(int articleId) =>
+      caller.callServerEndpoint<List<_i8.Comment>>(
+        'comment',
+        'getCommentsForArticle',
+        {'articleId': articleId},
+      );
+
+  /// Get all comments for Admin moderation
+  _i2.Future<List<_i8.Comment>> getAllCommentsForAdmin() =>
+      caller.callServerEndpoint<List<_i8.Comment>>(
+        'comment',
+        'getAllCommentsForAdmin',
+        {},
+      );
+
+  /// Toggle approval status of a comment
+  _i2.Future<_i8.Comment?> toggleApproval(int commentId) =>
+      caller.callServerEndpoint<_i8.Comment?>(
+        'comment',
+        'toggleApproval',
+        {'commentId': commentId},
+      );
+
+  /// Delete a comment
+  _i2.Future<bool> deleteComment(int commentId) =>
+      caller.callServerEndpoint<bool>(
+        'comment',
+        'deleteComment',
+        {'commentId': commentId},
+      );
+}
+
+/// {@category Endpoint}
+class EndpointDashboard extends _i1.EndpointRef {
+  EndpointDashboard(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'dashboard';
+
+  /// Fetch aggregate stats for the Admin Dashboard
+  _i2.Future<_i9.DashboardStats> getStats() =>
+      caller.callServerEndpoint<_i9.DashboardStats>(
+        'dashboard',
+        'getStats',
+        {},
+      );
 }
 
 /// This is an example endpoint that returns a greeting message through
@@ -276,8 +425,8 @@ class EndpointGreeting extends _i1.EndpointRef {
   String get name => 'greeting';
 
   /// Returns a personalized greeting message: "Hello {name}".
-  _i2.Future<_i6.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_i6.Greeting>(
+  _i2.Future<_i10.Greeting> hello(String name) =>
+      caller.callServerEndpoint<_i10.Greeting>(
         'greeting',
         'hello',
         {'name': name},
@@ -286,13 +435,13 @@ class EndpointGreeting extends _i1.EndpointRef {
 
 class Modules {
   Modules(Client client) {
-    serverpod_auth_idp = _i4.Caller(client);
-    serverpod_auth_core = _i5.Caller(client);
+    serverpod_auth_idp = _i6.Caller(client);
+    serverpod_auth_core = _i7.Caller(client);
   }
 
-  late final _i4.Caller serverpod_auth_idp;
+  late final _i6.Caller serverpod_auth_idp;
 
-  late final _i5.Caller serverpod_auth_core;
+  late final _i7.Caller serverpod_auth_core;
 }
 
 class Client extends _i1.ServerpodClientShared {
@@ -315,7 +464,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i7.Protocol(),
+         _i11.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -327,6 +476,8 @@ class Client extends _i1.ServerpodClientShared {
     article = EndpointArticle(this);
     emailIdp = EndpointEmailIdp(this);
     jwtRefresh = EndpointJwtRefresh(this);
+    comment = EndpointComment(this);
+    dashboard = EndpointDashboard(this);
     greeting = EndpointGreeting(this);
     modules = Modules(this);
   }
@@ -337,6 +488,10 @@ class Client extends _i1.ServerpodClientShared {
 
   late final EndpointJwtRefresh jwtRefresh;
 
+  late final EndpointComment comment;
+
+  late final EndpointDashboard dashboard;
+
   late final EndpointGreeting greeting;
 
   late final Modules modules;
@@ -346,6 +501,8 @@ class Client extends _i1.ServerpodClientShared {
     'article': article,
     'emailIdp': emailIdp,
     'jwtRefresh': jwtRefresh,
+    'comment': comment,
+    'dashboard': dashboard,
     'greeting': greeting,
   };
 

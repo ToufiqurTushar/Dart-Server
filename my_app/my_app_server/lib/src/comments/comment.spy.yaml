@@ -1,0 +1,14 @@
+class: Comment
+table: comment
+
+fields:
+  articleId: int
+  article: Article?, relation(field=articleId, name=article_comments)
+  authorName: String
+  authorEmail: String
+  authorAvatarUrl: String?
+  content: String
+  createdAt: DateTime
+  isApproved: bool
+  parentCommentId: int?
+  userId: int?

@@ -1,0 +1,13 @@
+class: ArticleTag
+table: article_tag
+
+fields:
+  articleId: int
+  article: Article?, relation(field=articleId, name=article_tags)
+  tagId: int
+  tag: Tag?, relation(field=tagId, name=tag_articles)
+
+indexes:
+  article_tag_idx:
+    fields: articleId, tagId
+    unique: true
