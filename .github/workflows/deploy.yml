@@ -79,12 +79,16 @@ jobs:
             cd /var/www/Dart-Server/my_app_server
             docker compose up -d || docker-compose up -d
 
-            # 5. Apply DB migrations & start Serverpod backend
+            # 5. Resolve dependencies for Serverpod server
             dart pub get
-            pkill -f "dart bin/main.dart" || true
-            nohup dart bin/main.dart --apply-migrations > /dev/null 2>&1 &
 
-            # 6. Configure Nginx Reverse Proxy (Port 80 -> Port 8080)
+            # 6. Install Systemd Service & Start Serverpod Backend
+            cp /var/www/Dart-Server/apex_blog.service /etc/systemd/system/apex_blog.service
+            systemctl daemon-reload
+            systemctl enable apex_blog
+            systemctl restart apex_blog
+
+            # 7. Configure Nginx Reverse Proxy (Port 80 -> Port 8080)
             cat << 'EOF' > /etc/nginx/sites-available/default
             server {
                 listen 80 default_server;

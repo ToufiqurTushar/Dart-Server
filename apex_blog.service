@@ -7,7 +7,8 @@ Requires=docker.service
 Type=simple
 User=root
 WorkingDirectory=/var/www/Dart-Server/my_app_server
-ExecStart=/usr/bin/dart bin/main.dart --mode production --apply-migrations
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/dart/bin"
+ExecStart=/usr/bin/env dart bin/main.dart --apply-migrations
 Restart=always
 RestartSec=5
 StandardOutput=syslog
