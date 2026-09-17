@@ -1,10 +1,40 @@
-name: Apex Blog CI/CD Deployment
+name: Reusable CI/CD Deployment Pipeline
 
 on:
   push:
     branches:
       - main
       - master
+
+# Default fallback environment variables (overridden by .deploy.env if present)
+env:
+  PROJECT_NAME: "my_app"
+  VPS_HOST: "160.25.226.218"
+  VPS_USER: "root"
+  DEPLOY_TARGET_DIR: "/var/www/Dart-Server"
+  SERVICE_NAME: "apex_blog"
+
+  # Network & Server Ports
+  NGINX_PORT: "80"
+  SERVERPOD_PORT: "8080"
+  DB_PORT: "8090"
+  REDIS_PORT: "8091"
+
+  # Database Settings
+  DB_NAME: "my_app"
+  DB_USER: "postgres"
+
+  # Build & Cache Settings
+  FLUTTER_CHANNEL: "stable"
+  WEB_CACHE_MAX_AGE: "86400"
+
+  # Secrets and Password Defaults
+  DB_PASSWORD: "Mr_U7k63ZbR32LUMq7BQ0woyI8Lt6jVX"
+  REDIS_PASSWORD: "0-27mEze6tiA6tWNpahV6V6nHN-_93s4"
+  SERVICE_SECRET: "bFeYGNJ0a8FmvOyoQpZ5ogvblaZIT6j_"
+  EMAIL_SECRET_HASH_PEPPER: "OACyrikbWrTVRPNQxq08oyprZ02f_UKP"
+  JWT_HMAC_SHA512_PRIVATE_KEY: "OhEfU26zG0NPSPoBfqNqQQuO7-ViW-Q8"
+  JWT_REFRESH_TOKEN_HASH_PEPPER: "DcTEXDFQ84wy-_Iq9a_SLHEg59D1XnoO"
 
 jobs:
   build-and-deploy:
@@ -14,36 +44,48 @@ jobs:
       - name: 1. Checkout Repository
         uses: actions/checkout@v4
 
-      - name: 2. Setup Flutter SDK
+      - name: 2. Load Project & VPS Environment Config (.deploy.env)
+        run: |
+          if [ -f .deploy.env ]; then
+            echo "Loading configuration from .deploy.env..."
+            cat .deploy.env | grep -v '^#' | grep -v '^$' >> $GITHUB_ENV
+          else
+            echo "No .deploy.env found, using default workflow env values."
+          fi
+
+      - name: 3. Setup Flutter SDK
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
-          cache: true
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: false
 
-      - name: 3. Build Flutter Web Release App
+      - name: 4. Build Flutter Web Release App
         run: |
-          cd my_app_flutter
+          cd ${{ env.PROJECT_NAME }}_flutter
           flutter pub get
-          flutter build web --release
-          mkdir -p ../my_app_server/web/app
-          cp -r build/web/* ../my_app_server/web/app/
+          flutter build web --release --no-pub
+          mkdir -p ../${{ env.PROJECT_NAME }}_server/web/app
+          rm -rf ../${{ env.PROJECT_NAME }}_server/web/app/*
+          cp -r build/web/* ../${{ env.PROJECT_NAME }}_server/web/app/
+          echo "{\"version\": \"$(date +%s)\"}" > ../${{ env.PROJECT_NAME }}_server/web/app/version.json
 
-      - name: 4. Transfer Codebase & Web Assets to VPS
+      - name: 5. Transfer Codebase & Web Assets to VPS
         uses: appleboy/scp-action@master
         with:
-          host: "160.25.226.218"
-          username: "root"
+          host: ${{ env.VPS_HOST }}
+          username: ${{ env.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
           source: "."
-          target: "/var/www/Dart-Server"
+          target: ${{ env.DEPLOY_TARGET_DIR }}
           rm: false
 
-      - name: 5. Setup Prerequisites & Restart Services on VPS
+      - name: 6. Setup Prerequisites & Restart Services on VPS
         uses: appleboy/ssh-action@master
         with:
-          host: "160.25.226.218"
-          username: "root"
+          host: ${{ env.VPS_HOST }}
+          username: ${{ env.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
+          envs: PROJECT_NAME,DEPLOY_TARGET_DIR,SERVICE_NAME,NGINX_PORT,SERVERPOD_PORT,DB_PORT,REDIS_PORT,DB_NAME,DB_USER,FLUTTER_CHANNEL,WEB_CACHE_MAX_AGE,DB_PASSWORD,REDIS_PASSWORD,SERVICE_SECRET,EMAIL_SECRET_HASH_PEPPER,JWT_HMAC_SHA512_PRIVATE_KEY,JWT_REFRESH_TOKEN_HASH_PEPPER
           script: |
             set -e
 
@@ -75,64 +117,101 @@ jobs:
               systemctl enable nginx
             fi
 
-            # 4. Ensure passwords.yaml exists for Serverpod authentication
-            cat << 'EOF' > /var/www/Dart-Server/my_app_server/config/passwords.yaml
+            # 4. Generate passwords.yaml dynamically from environment variables
+            mkdir -p ${{ env.DEPLOY_TARGET_DIR }}/${{ env.PROJECT_NAME }}_server/config
+            cat << EOF > ${{ env.DEPLOY_TARGET_DIR }}/${{ env.PROJECT_NAME }}_server/config/passwords.yaml
             development:
-              database: 'Mr_U7k63ZbR32LUMq7BQ0woyI8Lt6jVX'
-              redis: '0-27mEze6tiA6tWNpahV6V6nHN-_93s4'
-              serviceSecret: 'bFeYGNJ0a8FmvOyoQpZ5ogvblaZIT6j_'
-              emailSecretHashPepper: 'OACyrikbWrTVRPNQxq08oyprZ02f_UKP'
-              jwtHmacSha512PrivateKey: 'OhEfU26zG0NPSPoBfqNqQQuO7-ViW-Q8'
-              jwtRefreshTokenHashPepper: 'DcTEXDFQ84wy-_Iq9a_SLHEg59D1XnoO'
+              database: '${{ env.DB_PASSWORD }}'
+              redis: '${{ env.REDIS_PASSWORD }}'
+              serviceSecret: '${{ env.SERVICE_SECRET }}'
+              emailSecretHashPepper: '${{ env.EMAIL_SECRET_HASH_PEPPER }}'
+              jwtHmacSha512PrivateKey: '${{ env.JWT_HMAC_SHA512_PRIVATE_KEY }}'
+              jwtRefreshTokenHashPepper: '${{ env.JWT_REFRESH_TOKEN_HASH_PEPPER }}'
+            production:
+              database: '${{ env.DB_PASSWORD }}'
+              redis: '${{ env.REDIS_PASSWORD }}'
+              serviceSecret: '${{ env.SERVICE_SECRET }}'
+              emailSecretHashPepper: '${{ env.EMAIL_SECRET_HASH_PEPPER }}'
+              jwtHmacSha512PrivateKey: '${{ env.JWT_HMAC_SHA512_PRIVATE_KEY }}'
+              jwtRefreshTokenHashPepper: '${{ env.JWT_REFRESH_TOKEN_HASH_PEPPER }}'
             EOF
 
             # 5. Start Docker Containers (PostgreSQL & Redis)
-            cd /var/www/Dart-Server/my_app_server
+            cd ${{ env.DEPLOY_TARGET_DIR }}/${{ env.PROJECT_NAME }}_server
             docker compose up -d || docker-compose up -d
 
             # 6. Resolve dependencies for Serverpod server
             dart pub get
 
-            # 7. Install Systemd Service & Start Serverpod Backend
-            cp /var/www/Dart-Server/apex_blog.service /etc/systemd/system/apex_blog.service
-            systemctl daemon-reload
-            systemctl enable apex_blog
-            systemctl restart apex_blog
+            # 7. Dynamically Install & Configure Systemd Service
+            cat << EOF > /etc/systemd/system/${{ env.SERVICE_NAME }}.service
+            [Unit]
+            Description=${{ env.SERVICE_NAME }} Serverpod Backend Service
+            After=network.target docker.service
+            Requires=docker.service
 
-            # 8. Configure Nginx (High Performance Static Web Serving + Serverpod Reverse Proxy)
-            cat << 'EOF' > /etc/nginx/sites-available/default
+            [Service]
+            Type=simple
+            User=root
+            WorkingDirectory=${{ env.DEPLOY_TARGET_DIR }}/${{ env.PROJECT_NAME }}_server
+            Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/dart/bin"
+            ExecStart=/usr/bin/env dart bin/main.dart --apply-migrations
+            Restart=always
+            RestartSec=5
+            StandardOutput=syslog
+            StandardError=syslog
+            SyslogIdentifier=${{ env.SERVICE_NAME }}_server
+
+            [Install]
+            WantedBy=multi-user.target
+            EOF
+
+            systemctl daemon-reload
+            systemctl enable ${{ env.SERVICE_NAME }}
+            systemctl restart ${{ env.SERVICE_NAME }}
+
+            # 8. Configure Nginx dynamically (Cached Assets + Version Check Auto-Reload Endpoint)
+            cat << EOF > /etc/nginx/sites-available/default
             server {
-                listen 80 default_server;
-                listen [::]:80 default_server;
+                listen ${{ env.NGINX_PORT }} default_server;
+                listen [::]:${{ env.NGINX_PORT }} default_server;
                 server_name _;
 
-                root /var/www/Dart-Server/my_app_server/web/app;
+                root ${{ env.DEPLOY_TARGET_DIR }}/${{ env.PROJECT_NAME }}_server/web/app;
                 index index.html;
 
+                # High performance browser caching for static web files
                 location / {
-                    try_files $uri $uri/ /index.html @serverpod;
+                    add_header Cache-Control "public, max-age=${{ env.WEB_CACHE_MAX_AGE }}";
+                    try_files \$uri \$uri/ /index.html @serverpod;
+                }
+
+                # Always fresh version check API endpoint (no-cache)
+                location /version.json {
+                    add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0";
+                    expires -1;
                 }
 
                 location @serverpod {
-                    proxy_pass http://127.0.0.1:8080;
+                    proxy_pass http://127.0.0.1:${{ env.SERVERPOD_PORT }};
                     proxy_http_version 1.1;
-                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Upgrade \$http_upgrade;
                     proxy_set_header Connection 'upgrade';
-                    proxy_set_header Host $host;
-                    proxy_cache_bypass $http_upgrade;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header Host \$host;
+                    proxy_cache_bypass \$http_upgrade;
+                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
                 }
 
                 location /api {
-                    proxy_pass http://127.0.0.1:8080;
+                    proxy_pass http://127.0.0.1:${{ env.SERVERPOD_PORT }};
                     proxy_http_version 1.1;
-                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Upgrade \$http_upgrade;
                     proxy_set_header Connection 'upgrade';
-                    proxy_set_header Host $host;
-                    proxy_cache_bypass $http_upgrade;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header Host \$host;
+                    proxy_cache_bypass \$http_upgrade;
+                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
                 }
             }
             EOF

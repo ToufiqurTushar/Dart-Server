@@ -1,14 +1,13 @@
 import 'package:my_app_client/my_app_client.dart';
 import 'package:flutter/material.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
-import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
-
 import 'theme/blog_theme.dart';
 import 'widgets/auth_dialog.dart';
 import 'widgets/blog_header.dart';
 import 'screens/articles_screen.dart';
 import 'screens/article_detail_screen.dart';
 import 'screens/admin_dashboard_screen.dart' deferred as admin_panel;
+import 'utils/web_version_checker.dart';
 
 late final Client client;
 late String serverUrl;
@@ -99,6 +98,7 @@ class _BlogShellState extends State<BlogShell> {
   @override
   void initState() {
     super.initState();
+    checkAppVersionAndReloadIfNeeded();
     _loadInitialData();
   }
 
