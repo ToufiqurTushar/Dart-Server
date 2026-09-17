@@ -136,12 +136,12 @@ echo 'deb [signed-by=/usr/share/keyrings/dart.gpg] https://storage.googleapis.co
 sudo apt update
 sudo apt install dart -y
 
-# Run Serverpod in Production Mode on VPS:
+# Run Serverpod on VPS:
 cd /var/www/Dart-Server/my_app_server
-dart bin/main.dart --mode production --apply-migrations
+dart bin/main.dart --apply-migrations
 
-# Run Serverpod as Background Daemon on VPS (nohup):
-cd /var/www/Dart-Server/my_app_server && nohup dart bin/main.dart --mode production --apply-migrations > /dev/null 2>&1 &
+# Run Serverpod via systemd service on VPS:
+systemctl restart apex_blog
 
 # Check running Serverpod process:
 ps aux | grep main.dart
