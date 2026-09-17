@@ -14,19 +14,19 @@ jobs:
       - name: 1. Checkout Repository
         uses: actions/checkout@v4
 
-      - name: 2. Setup Dart SDK
-        uses: dart-lang/setup-dart@v1
-        with:
-          sdk: stable
+      # - name: 2. Setup Dart SDK
+      #   uses: dart-lang/setup-dart@v1
+      #   with:
+      #     sdk: stable
 
-      - name: 3. Setup Flutter SDK
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-          cache: true
+      # - name: 3. Setup Flutter SDK
+      #   uses: subosito/flutter-action@v2
+      #   with:
+      #     channel: 'stable'
+      #     cache: true
 
-      - name: 4. Install Serverpod CLI
-        run: dart pub global activate serverpod_cli
+      # - name: 4. Install Serverpod CLI
+      #   run: dart pub global activate serverpod_cli
 
       - name: 5. Build Flutter Web Release App
         run: |
@@ -39,8 +39,8 @@ jobs:
       - name: 6. Deploy & Restart Serverpod on VPS via SSH
         uses: appleboy/ssh-action@master
         with:
-          host: '160.25.226.218'
-          username: 'root'
+          host: "160.25.226.218"
+          username: "root"
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
             # 1. Navigate to target folder or clone if missing
