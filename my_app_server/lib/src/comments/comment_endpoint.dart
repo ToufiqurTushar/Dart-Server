@@ -7,7 +7,7 @@ class CommentEndpoint extends Endpoint {
     final newComment = comment.copyWith(
       createdAt: DateTime.now(),
       // Auto approve for smooth demo experience, or configurable
-      isApproved: comment.isApproved ?? true,
+      isApproved: true,
     );
     return await Comment.db.insertRow(session, newComment);
   }

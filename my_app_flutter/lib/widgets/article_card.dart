@@ -183,6 +183,32 @@ class _ArticleCardState extends State<ArticleCard> {
                           height: 1.4,
                         ),
                       ),
+                      if (a.articleTags != null && a.articleTags!.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: a.articleTags!.map((at) {
+                            final tagName = at.tag?.name ?? 'Tag#${at.tagId}';
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: BlogTheme.primaryViolet.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: BlogTheme.primaryViolet.withOpacity(0.2)),
+                              ),
+                              child: Text(
+                                '#$tagName',
+                                style: const TextStyle(
+                                  color: BlogTheme.primaryViolet,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       const Divider(height: 1),
                       const SizedBox(height: 12),

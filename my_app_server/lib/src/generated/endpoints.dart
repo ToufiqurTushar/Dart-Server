@@ -149,6 +149,11 @@ class Endpoints extends _i1.EndpointDispatch {
               type: _i1.getType<_i8.Article>(),
               nullable: false,
             ),
+            'tagIds': _i1.ParameterDescription(
+              name: 'tagIds',
+              type: _i1.getType<List<int>?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -158,6 +163,7 @@ class Endpoints extends _i1.EndpointDispatch {
                   (endpoints['article'] as _i2.ArticleEndpoint).addArticle(
                     session,
                     params['article'],
+                    tagIds: params['tagIds'],
                   ),
         ),
         'updateArticle': _i1.MethodConnector(
@@ -168,6 +174,11 @@ class Endpoints extends _i1.EndpointDispatch {
               type: _i1.getType<_i8.Article>(),
               nullable: false,
             ),
+            'tagIds': _i1.ParameterDescription(
+              name: 'tagIds',
+              type: _i1.getType<List<int>?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -177,6 +188,7 @@ class Endpoints extends _i1.EndpointDispatch {
                   (endpoints['article'] as _i2.ArticleEndpoint).updateArticle(
                     session,
                     params['article'],
+                    tagIds: params['tagIds'],
                   ),
         ),
         'deleteArticle': _i1.MethodConnector(

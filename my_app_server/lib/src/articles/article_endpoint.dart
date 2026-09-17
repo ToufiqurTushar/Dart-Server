@@ -33,6 +33,11 @@ class ArticleEndpoint extends Endpoint {
       orderDescending: true,
       include: Article.include(
         category: Category.include(),
+        articleTags: ArticleTag.includeList(
+          include: ArticleTag.include(
+            tag: Tag.include(),
+          ),
+        ),
       ),
     );
   }
@@ -44,6 +49,11 @@ class ArticleEndpoint extends Endpoint {
       id,
       include: Article.include(
         category: Category.include(),
+        articleTags: ArticleTag.includeList(
+          include: ArticleTag.include(
+            tag: Tag.include(),
+          ),
+        ),
       ),
     );
 
@@ -71,29 +81,67 @@ class ArticleEndpoint extends Endpoint {
   }
 
   /// Create a new article
-  Future<Article> addArticle(Session session, Article article) async {
+  Future<Article> addArticle(
+    Session session,
+    Article article, {
+    List<int>? tagIds,
+  }) async {
     final now = DateTime.now();
     final newArticle = article.copyWith(
-      createdAt: article.createdAt ?? now,
       publishedAt: article.status == 'published' ? (article.publishedAt ?? now) : null,
-      viewsCount: article.viewsCount ?? 0,
-      likesCount: article.likesCount ?? 0,
     );
-    return await Article.db.insertRow(session, newArticle);
+    final saved = await Article.db.insertRow(session, newArticle);
+
+    if (tagIds != null && tagIds.isNotEmpty && saved.id != null) {
+      for (final tagId in tagIds) {
+        await ArticleTag.db.insertRow(
+          session,
+          ArticleTag(articleId: saved.id!, tagId: tagId),
+        );
+      }
+    }
+
+    final reloaded = await getArticleById(session, saved.id!);
+    return reloaded ?? saved;
   }
 
   /// Update an existing article
-  Future<Article> updateArticle(Session session, Article article) async {
+  Future<Article> updateArticle(
+    Session session,
+    Article article, {
+    List<int>? tagIds,
+  }) async {
     final updated = article.copyWith(
       updatedAt: DateTime.now(),
     );
-    return await Article.db.updateRow(session, updated);
+    final saved = await Article.db.updateRow(session, updated);
+
+    if (tagIds != null && saved.id != null) {
+      await ArticleTag.db.deleteWhere(
+        session,
+        where: (t) => t.articleId.equals(saved.id!),
+      );
+
+      for (final tagId in tagIds) {
+        await ArticleTag.db.insertRow(
+          session,
+          ArticleTag(articleId: saved.id!, tagId: tagId),
+        );
+      }
+    }
+
+    final reloaded = await getArticleById(session, saved.id!);
+    return reloaded ?? saved;
   }
 
   /// Delete an article by ID
   Future<bool> deleteArticle(Session session, int id) async {
     final article = await Article.db.findById(session, id);
     if (article != null) {
+      await ArticleTag.db.deleteWhere(
+        session,
+        where: (t) => t.articleId.equals(id),
+      );
       await Article.db.deleteRow(session, article);
       return true;
     }

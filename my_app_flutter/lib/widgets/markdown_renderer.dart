@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/blog_theme.dart';
 
 class MarkdownRenderer extends StatelessWidget {
@@ -83,7 +84,7 @@ class MarkdownRenderer extends StatelessWidget {
       case _BlockType.h1:
         return Padding(
           padding: const EdgeInsets.only(top: 24, bottom: 12),
-          child: Text(
+          child: SelectableText(
             block.text,
             style: TextStyle(
               fontSize: 28,
@@ -97,7 +98,7 @@ class MarkdownRenderer extends StatelessWidget {
       case _BlockType.h2:
         return Padding(
           padding: const EdgeInsets.only(top: 20, bottom: 10),
-          child: Text(
+          child: SelectableText(
             block.text,
             style: TextStyle(
               fontSize: 22,
@@ -110,7 +111,7 @@ class MarkdownRenderer extends StatelessWidget {
       case _BlockType.h3:
         return Padding(
           padding: const EdgeInsets.only(top: 16, bottom: 8),
-          child: Text(
+          child: SelectableText(
             block.text,
             style: TextStyle(
               fontSize: 18,
@@ -124,23 +125,76 @@ class MarkdownRenderer extends StatelessWidget {
         return Container(
           width: double.infinity,
           margin: const EdgeInsets.symmetric(vertical: 16),
-          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF090D16) : const Color(0xFF1E293B),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: BlogTheme.primaryViolet.withOpacity(0.3)),
           ),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Text(
-              block.text,
-              style: const TextStyle(
-                fontFamily: 'Courier',
-                fontSize: 14,
-                color: Color(0xFF38BDF8),
-                height: 1.5,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Code Block Header Bar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.2),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      (block.lang != null && block.lang!.isNotEmpty) ? block.lang!.toUpperCase() : 'CODE',
+                      style: const TextStyle(
+                        color: BlogTheme.secondaryCyan,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: block.text));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Code snippet copied to clipboard!'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(6),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Row(
+                          children: [
+                            Icon(Icons.copy_rounded, size: 14, color: Colors.white70),
+                            SizedBox(width: 4),
+                            Text('Copy', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+
+              // Selectable Code Text
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SelectableText(
+                    block.text,
+                    style: const TextStyle(
+                      fontFamily: 'Courier',
+                      fontSize: 14,
+                      color: Color(0xFF38BDF8),
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       case _BlockType.bullet:

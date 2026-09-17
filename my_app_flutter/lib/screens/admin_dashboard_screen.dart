@@ -11,11 +11,11 @@ class AdminDashboardScreen extends StatefulWidget {
   final List<Comment> allComments;
 
   final VoidCallback onRefresh;
-  final Function(Article article) onSaveArticle;
+  final Function(Article article, List<int> tagIds) onSaveArticle;
   final Function(int id) onDeleteArticle;
   final Function(Category category) onCreateCategory;
   final Function(int id) onDeleteCategory;
-  final Function(Tag tag) onCreateTag;
+  final Future<Tag> Function(Tag tag) onCreateTag;
   final Function(int id) onDeleteTag;
   final Function(int id) onToggleCommentApproval;
   final Function(int id) onDeleteComment;
@@ -198,6 +198,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                           categories: widget.categories,
                           tags: widget.tags,
                           onSave: widget.onSaveArticle,
+                          onCreateTag: widget.onCreateTag,
                         );
                       },
                       icon: const Icon(Icons.add),
@@ -405,7 +406,33 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                     ),
                   ),
                   title: Text(a.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('Author: ${a.authorName} • Views: ${a.viewsCount} • Likes: ${a.likesCount}'),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Author: ${a.authorName} • Views: ${a.viewsCount} • Likes: ${a.likesCount}'),
+                      if (a.articleTags != null && a.articleTags!.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: a.articleTags!.map((at) {
+                            final tagName = at.tag?.name ?? 'Tag#${at.tagId}';
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: BlogTheme.primaryViolet.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '#$tagName',
+                                style: const TextStyle(fontSize: 10, color: BlogTheme.primaryViolet, fontWeight: FontWeight.bold),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ],
+                  ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -434,6 +461,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                             categories: widget.categories,
                             tags: widget.tags,
                             onSave: widget.onSaveArticle,
+                            onCreateTag: widget.onCreateTag,
                           );
                         },
                       ),

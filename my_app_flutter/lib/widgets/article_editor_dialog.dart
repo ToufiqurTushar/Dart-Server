@@ -6,7 +6,8 @@ class ArticleEditorDialog extends StatefulWidget {
   final Article? article;
   final List<Category> categories;
   final List<Tag> tags;
-  final Function(Article article) onSave;
+  final Function(Article article, List<int> selectedTagIds) onSave;
+  final Future<Tag?> Function(Tag tag)? onCreateTag;
 
   const ArticleEditorDialog({
     super.key,
@@ -14,6 +15,7 @@ class ArticleEditorDialog extends StatefulWidget {
     required this.categories,
     required this.tags,
     required this.onSave,
+    this.onCreateTag,
   });
 
   static Future<void> show(
@@ -21,7 +23,8 @@ class ArticleEditorDialog extends StatefulWidget {
     Article? article,
     required List<Category> categories,
     required List<Tag> tags,
-    required Function(Article) onSave,
+    required Function(Article article, List<int> selectedTagIds) onSave,
+    Future<Tag?> Function(Tag tag)? onCreateTag,
   }) {
     return showDialog(
       context: context,
@@ -30,6 +33,7 @@ class ArticleEditorDialog extends StatefulWidget {
         categories: categories,
         tags: tags,
         onSave: onSave,
+        onCreateTag: onCreateTag,
       ),
     );
   }
@@ -51,6 +55,8 @@ class _ArticleEditorDialogState extends State<ArticleEditorDialog> {
   late TextEditingController _readingTimeController;
 
   int? _selectedCategoryId;
+  late List<Tag> _availableTags;
+  late Set<int> _selectedTagIds;
   bool _isFeatured = false;
   String _status = 'published';
 
@@ -68,6 +74,12 @@ class _ArticleEditorDialogState extends State<ArticleEditorDialog> {
     _readingTimeController = TextEditingController(text: (a?.readingTimeMinutes ?? 5).toString());
     
     _selectedCategoryId = a?.categoryId ?? (widget.categories.isNotEmpty ? widget.categories.first.id : null);
+    _availableTags = List.from(widget.tags);
+    _selectedTagIds = a?.articleTags
+            ?.map((at) => at.tagId)
+            .toSet() ??
+        {};
+
     _isFeatured = a?.isFeatured ?? false;
     _status = a?.status ?? 'published';
 
@@ -82,6 +94,65 @@ class _ArticleEditorDialogState extends State<ArticleEditorDialog> {
           .replaceAll(RegExp(r'\s+'), '-');
       _slugController.text = slug;
     }
+  }
+
+  void _showQuickCreateTagDialog() {
+    final nameController = TextEditingController();
+    final slugController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add New Tag'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Tag Name', border: OutlineInputBorder()),
+              onChanged: (val) {
+                slugController.text = val.toLowerCase().replaceAll(RegExp(r'\s+'), '-');
+              },
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: slugController,
+              decoration: const InputDecoration(labelText: 'Slug', border: OutlineInputBorder()),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.trim().isNotEmpty) {
+                final newTag = Tag(
+                  name: nameController.text.trim(),
+                  slug: slugController.text.trim(),
+                );
+
+                Tag? createdTag;
+                if (widget.onCreateTag != null) {
+                  createdTag = await widget.onCreateTag!(newTag);
+                }
+
+                createdTag ??= newTag.copyWith(id: DateTime.now().millisecondsSinceEpoch);
+
+                setState(() {
+                  _availableTags.add(createdTag!);
+                  if (createdTag.id != null) {
+                    _selectedTagIds.add(createdTag.id!);
+                  }
+                });
+
+                if (mounted) Navigator.pop(ctx);
+              }
+            },
+            child: const Text('Add Tag'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -120,7 +191,7 @@ class _ArticleEditorDialogState extends State<ArticleEditorDialog> {
         categoryId: _selectedCategoryId,
       );
 
-      widget.onSave(newArticle);
+      widget.onSave(newArticle, _selectedTagIds.toList());
       Navigator.of(context).pop();
     }
   }
@@ -201,6 +272,83 @@ class _ArticleEditorDialogState extends State<ArticleEditorDialog> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 12),
+
+                // Article Tags Selector Section
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withOpacity(0.04) : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.style_outlined, size: 18, color: BlogTheme.primaryViolet),
+                              SizedBox(width: 6),
+                              Text(
+                                'Article Tags (Click to toggle)',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                            ],
+                          ),
+                          TextButton.icon(
+                            onPressed: _showQuickCreateTagDialog,
+                            icon: const Icon(Icons.add_circle_outline, size: 16),
+                            label: const Text('Quick Add Tag', style: TextStyle(fontSize: 12)),
+                            style: TextButton.styleFrom(
+                              foregroundColor: BlogTheme.primaryViolet,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      if (_availableTags.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: Text('No tags created yet. Click "+ Quick Add Tag" to create one.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        )
+                      else
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _availableTags.map((tag) {
+                            final isSelected = tag.id != null && _selectedTagIds.contains(tag.id);
+                            return FilterChip(
+                              label: Text('#${tag.name}'),
+                              selected: isSelected,
+                              selectedColor: BlogTheme.primaryViolet.withOpacity(0.2),
+                              checkmarkColor: BlogTheme.primaryViolet,
+                              side: BorderSide(
+                                color: isSelected ? BlogTheme.primaryViolet : (isDark ? Colors.white24 : Colors.grey.shade300),
+                              ),
+                              labelStyle: TextStyle(
+                                color: isSelected ? BlogTheme.primaryViolet : (isDark ? Colors.white70 : Colors.black87),
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                fontSize: 12,
+                              ),
+                              onSelected: (bool selected) {
+                                if (tag.id == null) return;
+                                setState(() {
+                                  if (selected) {
+                                    _selectedTagIds.add(tag.id!);
+                                  } else {
+                                    _selectedTagIds.remove(tag.id!);
+                                  }
+                                });
+                              },
+                            );
+                          }).toList(),
+                        ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 12),
 

@@ -108,20 +108,51 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (a.category != null) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: BlogTheme.primaryViolet,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              a.category!.name.toUpperCase(),
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                        ],
+                        Row(
+                          children: [
+                            if (a.category != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: BlogTheme.primaryViolet,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  a.category!.name.toUpperCase(),
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                ),
+                              ),
+                            if (a.articleTags != null && a.articleTags!.isNotEmpty) ...[
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    children: a.articleTags!.map((at) {
+                                      final tagName = at.tag?.name ?? 'Tag#${at.tagId}';
+                                      return Padding(
+                                        padding: const EdgeInsets.only(right: 6),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(16),
+                                            border: Border.all(color: Colors.white30),
+                                          ),
+                                          child: Text(
+                                            '#$tagName',
+                                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 11),
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 12),
                         Text(
                           a.title,
                           style: const TextStyle(

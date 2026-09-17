@@ -264,9 +264,10 @@ Visual impression is key to user retention. Modern design leverages subtle trans
       categoryId: cats.length > 2 ? cats[2].id : catId,
     );
 
+    final tagIds = _tags.map((t) => t.id).where((id) => id != null).cast<int>().toList();
     try {
-      final res1 = await client.article.addArticle(a1);
-      final res2 = await client.article.addArticle(a2);
+      final res1 = await client.article.addArticle(a1, tagIds: tagIds.isNotEmpty ? [tagIds.first] : null);
+      final res2 = await client.article.addArticle(a2, tagIds: tagIds);
       return [res1, res2];
     } catch (_) {
       return [a1, a2];
@@ -295,6 +296,7 @@ Visual impression is key to user retention. Modern design leverages subtle trans
         isFeatured: true,
         createdAt: DateTime.now(),
         categoryId: 1,
+        articleTags: [ArticleTag(articleId: 1, tagId: 1, tag: Tag(id: 1, name: 'Flutter', slug: 'flutter'))],
       ),
     ];
   }
@@ -364,68 +366,134 @@ Visual impression is key to user retention. Modern design leverages subtle trans
     }
   }
 
-  void _handleSaveArticle(Article article) async {
+  void _showToast(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.warning_amber_rounded : Icons.check_circle_outline,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: isError ? Colors.orange.shade900 : Colors.green.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 4),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  void _handleSaveArticle(Article article, List<int> tagIds) async {
     try {
       if (article.id == null) {
-        final created = await client.article.addArticle(article);
+        final created = await client.article.addArticle(article, tagIds: tagIds);
         setState(() => _articles.insert(0, created));
       } else {
-        final updated = await client.article.updateArticle(article);
+        final updated = await client.article.updateArticle(article, tagIds: tagIds);
         setState(() {
           final idx = _articles.indexWhere((a) => a.id == updated.id);
           if (idx != -1) _articles[idx] = updated;
         });
       }
+      _showToast(article.id == null ? 'Article created successfully!' : 'Article updated successfully!');
       _refreshStats();
     } catch (e) {
-      debugPrint('Error saving article: $e');
+      debugPrint('Error saving article on server, applying local fallback: $e');
+      final selectedTags = _tags.where((t) => t.id != null && tagIds.contains(t.id!)).toList();
+      final targetId = article.id ?? DateTime.now().millisecondsSinceEpoch;
+      final articleTagList = selectedTags
+          .map((t) => ArticleTag(articleId: targetId, tagId: t.id!, tag: t))
+          .toList();
+      if (article.id == null) {
+        final localCreated = article.copyWith(
+          id: targetId,
+          articleTags: articleTagList,
+        );
+        setState(() => _articles.insert(0, localCreated));
+      } else {
+        final localUpdated = article.copyWith(articleTags: articleTagList);
+        setState(() {
+          final idx = _articles.indexWhere((a) => a.id == article.id);
+          if (idx != -1) _articles[idx] = localUpdated;
+        });
+      }
+      _showToast('Server offline: Article saved locally in offline mode', isError: true);
     }
   }
 
   void _handleDeleteArticle(int id) async {
     try {
       await client.article.deleteArticle(id);
-      setState(() => _articles.removeWhere((a) => a.id == id));
-      _refreshStats();
+      _showToast('Article deleted successfully.');
     } catch (e) {
-      debugPrint('Error deleting article: $e');
+      debugPrint('Error deleting article on server, applying local fallback: $e');
+      _showToast('Server offline: Article removed locally', isError: true);
     }
+    setState(() => _articles.removeWhere((a) => a.id == id));
+    _refreshStats();
   }
 
   void _handleCreateCategory(Category category) async {
     try {
       final created = await client.article.createCategory(category);
       setState(() => _categories.add(created));
+      _showToast('Category created successfully!');
     } catch (e) {
-      debugPrint('Error creating category: $e');
+      debugPrint('Error creating category on server, applying local fallback: $e');
+      final localCat = category.copyWith(id: DateTime.now().millisecondsSinceEpoch);
+      setState(() => _categories.add(localCat));
+      _showToast('Server offline: Category added locally', isError: true);
     }
   }
 
   void _handleDeleteCategory(int id) async {
     try {
       await client.article.deleteCategory(id);
-      setState(() => _categories.removeWhere((c) => c.id == id));
+      _showToast('Category deleted.');
     } catch (e) {
-      debugPrint('Error deleting category: $e');
+      debugPrint('Error deleting category on server, applying local fallback: $e');
+      _showToast('Server offline: Category removed locally', isError: true);
     }
+    setState(() => _categories.removeWhere((c) => c.id == id));
   }
 
-  void _handleCreateTag(Tag tag) async {
+  Future<Tag> _handleCreateTag(Tag tag) async {
     try {
       final created = await client.article.createTag(tag);
       setState(() => _tags.add(created));
+      _showToast('Tag created successfully!');
+      return created;
     } catch (e) {
-      debugPrint('Error creating tag: $e');
+      debugPrint('Error creating tag on server, applying local fallback: $e');
+      final localTag = tag.copyWith(id: DateTime.now().millisecondsSinceEpoch);
+      setState(() => _tags.add(localTag));
+      _showToast('Server offline: Tag added locally', isError: true);
+      return localTag;
     }
   }
 
   void _handleDeleteTag(int id) async {
     try {
       await client.article.deleteTag(id);
-      setState(() => _tags.removeWhere((t) => t.id == id));
+      _showToast('Tag deleted.');
     } catch (e) {
-      debugPrint('Error deleting tag: $e');
+      debugPrint('Error deleting tag on server, applying local fallback: $e');
+      _showToast('Server offline: Tag removed locally', isError: true);
     }
+    setState(() => _tags.removeWhere((t) => t.id == id));
   }
 
   void _handleToggleCommentApproval(int id) async {

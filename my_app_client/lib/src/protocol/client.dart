@@ -65,20 +65,30 @@ class EndpointArticle extends _i1.EndpointRef {
       );
 
   /// Create a new article
-  _i2.Future<_i3.Article> addArticle(_i3.Article article) =>
-      caller.callServerEndpoint<_i3.Article>(
-        'article',
-        'addArticle',
-        {'article': article},
-      );
+  _i2.Future<_i3.Article> addArticle(
+    _i3.Article article, {
+    List<int>? tagIds,
+  }) => caller.callServerEndpoint<_i3.Article>(
+    'article',
+    'addArticle',
+    {
+      'article': article,
+      'tagIds': tagIds,
+    },
+  );
 
   /// Update an existing article
-  _i2.Future<_i3.Article> updateArticle(_i3.Article article) =>
-      caller.callServerEndpoint<_i3.Article>(
-        'article',
-        'updateArticle',
-        {'article': article},
-      );
+  _i2.Future<_i3.Article> updateArticle(
+    _i3.Article article, {
+    List<int>? tagIds,
+  }) => caller.callServerEndpoint<_i3.Article>(
+    'article',
+    'updateArticle',
+    {
+      'article': article,
+      'tagIds': tagIds,
+    },
+  );
 
   /// Delete an article by ID
   _i2.Future<bool> deleteArticle(int id) => caller.callServerEndpoint<bool>(

@@ -295,8 +295,9 @@ class _ArticleEndpoint {
 
   _i3.Future<_i4.Article> addArticle(
     _i1.TestSessionBuilder sessionBuilder,
-    _i4.Article article,
-  ) async {
+    _i4.Article article, {
+    List<int>? tagIds,
+  }) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
@@ -308,7 +309,10 @@ class _ArticleEndpoint {
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'article',
           methodName: 'addArticle',
-          parameters: _i1.testObjectToJson({'article': article}),
+          parameters: _i1.testObjectToJson({
+            'article': article,
+            'tagIds': tagIds,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
@@ -326,8 +330,9 @@ class _ArticleEndpoint {
 
   _i3.Future<_i4.Article> updateArticle(
     _i1.TestSessionBuilder sessionBuilder,
-    _i4.Article article,
-  ) async {
+    _i4.Article article, {
+    List<int>? tagIds,
+  }) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
@@ -339,7 +344,10 @@ class _ArticleEndpoint {
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'article',
           methodName: 'updateArticle',
-          parameters: _i1.testObjectToJson({'article': article}),
+          parameters: _i1.testObjectToJson({
+            'article': article,
+            'tagIds': tagIds,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
