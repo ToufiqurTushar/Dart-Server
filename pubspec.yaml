@@ -7,5 +7,4 @@ environment:
 workspace:
   - my_app_client
   - my_app_server
-  - my_app_flutter
 
