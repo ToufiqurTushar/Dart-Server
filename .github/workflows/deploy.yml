@@ -39,8 +39,8 @@ jobs:
       - name: 6. Deploy & Restart Serverpod on VPS via SSH
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
+          host: '160.25.226.218'
+          username: 'root'
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
             # 1. Navigate to target folder or clone if missing
