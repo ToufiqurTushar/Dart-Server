@@ -99,15 +99,22 @@ jobs:
             systemctl enable apex_blog
             systemctl restart apex_blog
 
-            # 8. Configure Nginx Reverse Proxy (Port 80 -> Port 8082 for Web, Port 8080 for API)
+            # 8. Configure Nginx (High Performance Static Web Serving + Serverpod Reverse Proxy)
             cat << 'EOF' > /etc/nginx/sites-available/default
             server {
                 listen 80 default_server;
                 listen [::]:80 default_server;
                 server_name _;
 
+                root /var/www/Dart-Server/my_app_server/web/app;
+                index index.html;
+
                 location / {
-                    proxy_pass http://127.0.0.1:8082;
+                    try_files $uri $uri/ /index.html @serverpod;
+                }
+
+                location @serverpod {
+                    proxy_pass http://127.0.0.1:8080;
                     proxy_http_version 1.1;
                     proxy_set_header Upgrade $http_upgrade;
                     proxy_set_header Connection 'upgrade';
