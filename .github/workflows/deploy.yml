@@ -14,58 +14,93 @@ jobs:
       - name: 1. Checkout Repository
         uses: actions/checkout@v4
 
-      # - name: 2. Setup Dart SDK
-      #   uses: dart-lang/setup-dart@v1
-      #   with:
-      #     sdk: stable
+      - name: 2. Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
 
-      # - name: 3. Setup Flutter SDK
-      #   uses: subosito/flutter-action@v2
-      #   with:
-      #     channel: 'stable'
-      #     cache: true
-
-      # - name: 4. Install Serverpod CLI
-      #   run: dart pub global activate serverpod_cli
-
-      - name: 5. Build Flutter Web Release App
+      - name: 3. Build Flutter Web Release App
         run: |
-          cd my_app/my_app_flutter
+          cd my_app_flutter
           flutter pub get
           flutter build web --release
           mkdir -p ../my_app_server/web/app
           cp -r build/web/* ../my_app_server/web/app/
 
-      - name: 6. Deploy & Restart Serverpod on VPS via SSH
+      - name: 4. Transfer Codebase & Web Assets to VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: "160.25.226.218"
+          username: "root"
+          password: ${{ secrets.VPS_PASSWORD }}
+          source: "."
+          target: "/var/www/Dart-Server"
+          rm: false
+
+      - name: 5. Setup Prerequisites & Restart Services on VPS
         uses: appleboy/ssh-action@master
         with:
           host: "160.25.226.218"
           username: "root"
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
-            # 1. Navigate to target folder or clone if missing
-            if [ ! -d "/var/www/Dart-Server" ]; then
-              mkdir -p /var/www
-              cd /var/www
-              git clone https://github.com/ToufiqurTushar/Dart-Server.git
+            set -e
+
+            # 1. Install Docker if missing
+            if ! command -v docker > /dev/null 2>&1; then
+              echo "Installing Docker..."
+              apt-get update
+              apt-get install -y docker.io docker-compose-v2
+              systemctl enable --now docker
             fi
 
-            cd /var/www/Dart-Server
-            git fetch --all
-            git reset --hard origin/main
+            # 2. Install Dart SDK if missing
+            if ! command -v dart > /dev/null 2>&1 && [ ! -f "/usr/lib/dart/bin/dart" ]; then
+              echo "Installing Dart SDK..."
+              apt-get update
+              apt-get install -y apt-transport-https wget gpg
+              wget -qO- https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/dart.gpg
+              echo 'deb [signed-by=/usr/share/keyrings/dart.gpg] https://storage.googleapis.com/download.dartlang.org/linux/debian stable main' | tee /etc/apt/sources.list.d/dart_stable.list
+              apt-get update
+              apt-get install -y dart
+            fi
 
-            # 2. Start PostgreSQL & Redis via Docker
-            cd my_app/my_app_server
-            docker compose up -d
+            export PATH="$PATH:/usr/lib/dart/bin"
 
-            # 3. Apply DB migrations & start Serverpod backend in production mode
+            # 3. Install Nginx if missing
+            if ! command -v nginx > /dev/null 2>&1; then
+              echo "Installing Nginx..."
+              apt-get update && apt-get install -y nginx
+              systemctl enable nginx
+            fi
+
+            # 4. Start Docker Containers (PostgreSQL & Redis)
+            cd /var/www/Dart-Server/my_app_server
+            docker compose up -d || docker-compose up -d
+
+            # 5. Apply DB migrations & start Serverpod backend
             dart pub get
             pkill -f "dart bin/main.dart" || true
-            nohup dart bin/main.dart --mode production --apply-migrations > /dev/null 2>&1 &
+            nohup dart bin/main.dart --apply-migrations > /dev/null 2>&1 &
 
-            # 4. Install & Configure Nginx if missing
-            if ! command -v nginx > /dev/null 2>&1; then
-              sudo apt update && sudo apt install -y nginx
-              sudo systemctl enable nginx
-            fi
-            sudo systemctl restart nginx
+            # 6. Configure Nginx Reverse Proxy (Port 80 -> Port 8080)
+            cat << 'EOF' > /etc/nginx/sites-available/default
+            server {
+                listen 80 default_server;
+                listen [::]:80 default_server;
+                server_name _;
+
+                location / {
+                    proxy_pass http://127.0.0.1:8080;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection 'upgrade';
+                    proxy_set_header Host $host;
+                    proxy_cache_bypass $http_upgrade;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                }
+            }
+            EOF
+            nginx -t && systemctl restart nginx

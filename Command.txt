@@ -113,7 +113,7 @@ serverpod create my_app
 # (This automatically creates: my_app_server, my_app_client, and my_app_flutter)
 
 # B. Local Development:
-cd my_app/my_app_server
+cd my_app_server
 
 # 1. Start Docker Containers (PostgreSQL & Redis):
 docker compose up -d
@@ -137,11 +137,11 @@ sudo apt update
 sudo apt install dart -y
 
 # Run Serverpod in Production Mode on VPS:
-cd /var/www/my_app/my_app_server
+cd /var/www/Dart-Server/my_app_server
 dart bin/main.dart --mode production --apply-migrations
 
 # Run Serverpod as Background Daemon on VPS (nohup):
-cd /var/www/my_app/my_app_server && nohup dart bin/main.dart --mode production --apply-migrations > /dev/null 2>&1 &
+cd /var/www/Dart-Server/my_app_server && nohup dart bin/main.dart --mode production --apply-migrations > /dev/null 2>&1 &
 
 # Check running Serverpod process:
 ps aux | grep main.dart
@@ -153,19 +153,19 @@ pkill -f "dart bin/main.dart"
 6. FLUTTER WEB APP COMMANDS
 --------------------------------------------------------------------------------
 # A. Enable Web Support & Run Locally:
-cd my_app/my_app_flutter
+cd my_app_flutter
 flutter config --enable-web
 flutter run -d chrome
 
 # B. Build Web App & Bundle with Serverpod Server:
 # Windows (Build & Copy to Serverpod Web directory):
-cd my_app/my_app_flutter
+cd my_app_flutter
 if (!(Test-Path "..\my_app_server\web\app")) { New-Item -ItemType Directory -Force -Path "..\my_app_server\web\app" }
 flutter build web --release
 Copy-Item -Path "build\web\*" -Destination "..\my_app_server\web\app" -Recurse -Force
 
 # Linux / VPS Web Build for Serverpod:
-cd my_app/my_app_flutter
+cd my_app_flutter
 mkdir -p ../my_app_server/web/app
 flutter build web --release --base-href /app/ --wasm
 cp -r build/web/* ../my_app_server/web/app/
@@ -173,7 +173,7 @@ cp -r build/web/* ../my_app_server/web/app/
 
 7. FLUTTER MOBILE APP COMMANDS (Android & iOS)
 --------------------------------------------------------------------------------
-cd my_app/my_app_flutter
+cd my_app_flutter
 
 # A. Devices & Emulators:
 flutter devices

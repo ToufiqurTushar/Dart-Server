@@ -6,7 +6,7 @@ Requires=docker.service
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/var/www/Dart-Server/my_app/my_app_server
+WorkingDirectory=/var/www/Dart-Server/my_app_server
 ExecStart=/usr/bin/dart bin/main.dart --mode production --apply-migrations
 Restart=always
 RestartSec=5
