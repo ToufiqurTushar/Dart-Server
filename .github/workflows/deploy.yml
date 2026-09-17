@@ -75,20 +75,31 @@ jobs:
               systemctl enable nginx
             fi
 
-            # 4. Start Docker Containers (PostgreSQL & Redis)
+            # 4. Ensure passwords.yaml exists for Serverpod authentication
+            cat << 'EOF' > /var/www/Dart-Server/my_app_server/config/passwords.yaml
+            development:
+              database: 'Mr_U7k63ZbR32LUMq7BQ0woyI8Lt6jVX'
+              redis: '0-27mEze6tiA6tWNpahV6V6nHN-_93s4'
+              serviceSecret: 'bFeYGNJ0a8FmvOyoQpZ5ogvblaZIT6j_'
+              emailSecretHashPepper: 'OACyrikbWrTVRPNQxq08oyprZ02f_UKP'
+              jwtHmacSha512PrivateKey: 'OhEfU26zG0NPSPoBfqNqQQuO7-ViW-Q8'
+              jwtRefreshTokenHashPepper: 'DcTEXDFQ84wy-_Iq9a_SLHEg59D1XnoO'
+            EOF
+
+            # 5. Start Docker Containers (PostgreSQL & Redis)
             cd /var/www/Dart-Server/my_app_server
             docker compose up -d || docker-compose up -d
 
-            # 5. Resolve dependencies for Serverpod server
+            # 6. Resolve dependencies for Serverpod server
             dart pub get
 
-            # 6. Install Systemd Service & Start Serverpod Backend
+            # 7. Install Systemd Service & Start Serverpod Backend
             cp /var/www/Dart-Server/apex_blog.service /etc/systemd/system/apex_blog.service
             systemctl daemon-reload
             systemctl enable apex_blog
             systemctl restart apex_blog
 
-            # 7. Configure Nginx Reverse Proxy (Port 80 -> Port 8080)
+            # 8. Configure Nginx Reverse Proxy (Port 80 -> Port 8082 for Web, Port 8080 for API)
             cat << 'EOF' > /etc/nginx/sites-available/default
             server {
                 listen 80 default_server;
@@ -96,6 +107,17 @@ jobs:
                 server_name _;
 
                 location / {
+                    proxy_pass http://127.0.0.1:8082;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection 'upgrade';
+                    proxy_set_header Host $host;
+                    proxy_cache_bypass $http_upgrade;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                }
+
+                location /api {
                     proxy_pass http://127.0.0.1:8080;
                     proxy_http_version 1.1;
                     proxy_set_header Upgrade $http_upgrade;

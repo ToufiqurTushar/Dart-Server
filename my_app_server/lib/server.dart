@@ -52,15 +52,13 @@ void run(List<String> args) async {
   // Checks if the flutter web app has been built and serves it if it has.
   final appDir = Directory(Uri(path: 'web/app').toFilePath());
   if (appDir.existsSync()) {
-    // Serve the flutter web app under the /app path.
-    pod.webServer.addRoute(
-      FlutterRoute(
-        Directory(
-          Uri(path: 'web/app').toFilePath(),
-        ),
+    final flutterRoute = FlutterRoute(
+      Directory(
+        Uri(path: 'web/app').toFilePath(),
       ),
-      '/app',
     );
+    pod.webServer.addRoute(flutterRoute, '/');
+    pod.webServer.addRoute(flutterRoute, '/app');
   } else {
     // If the flutter web app has not been built, serve the build app page.
     pod.webServer.addRoute(
